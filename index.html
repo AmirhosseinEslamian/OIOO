@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<title>امروز</title>
+<style>
+:root{--bg:#fff;--text:#000;--muted:#8a8a8a;--line:#e5e5e5;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--text:#fff;--muted:#7a7a7a;--line:#262626}}
+:root[data-theme="dark"]{--bg:#000;--text:#fff;--muted:#7a7a7a;--line:#262626}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Vazirmatn,Tahoma,system-ui,sans-serif}
+body{max-width:520px;margin:0 auto;padding:20px 20px 40px}
+h1{font-size:15px;font-weight:400;color:var(--text);margin:10px 0 18px;text-align:center;direction:ltr;unicode-bidi:isolate;font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.3px}
+input{width:100%;box-sizing:border-box;padding:12px 0;border:0;border-bottom:1px solid var(--text);background:none;color:var(--text);font:inherit;font-size:16px;outline:none;margin-bottom:8px}
+input::placeholder{color:var(--muted)}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.c{width:20px;height:20px;border:1.5px solid var(--text);border-radius:50%;flex:none;background:none;padding:0}
+li.done .c{background:var(--text)}
+.t{flex:1;font-size:16px;line-height:1.6;word-break:break-word}
+li.done .t{color:var(--muted);text-decoration:line-through}
+.b{border:0;background:none;color:var(--muted);font-size:16px;padding:4px 5px}
+.empty{color:var(--muted);text-align:center;padding:40px 0;font-size:14px}
+</style>
+</head>
+<body>
+<h1 id="date" dir="ltr"></h1>
+<input id="in" placeholder="تسک جدید" enterkeyhint="done">
+<ul id="list"></ul>
+<script>
+function today(){var d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+var data={day:today(),tasks:[]};
+try{var s=JSON.parse(localStorage.getItem("daily-tasks")||"null");if(s&&s.tasks)data=s}catch(e){}
+function save(){try{localStorage.setItem("daily-tasks",JSON.stringify(data))}catch(e){}}
+function checkDay(){if(data.day!==today()){data={day:today(),tasks:[]};save();render()}showDate()}
+function fmt(loc){var p={};new Intl.DateTimeFormat(loc,{year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date()).forEach(function(x){p[x.type]=x.value});return p.year+"-"+p.month+"-"+p.day}
+function showDate(){var g="",j="";try{g=fmt("en-CA-u-ca-gregory-nu-latn");j=fmt("en-US-u-ca-persian-nu-latn")}catch(e){}document.getElementById("date").textContent="Today = ["+g+" , "+j+"]"}
+function render(){
+  var ul=document.getElementById("list");ul.innerHTML="";var tasks=data.tasks;
+  if(!tasks.length){ul.innerHTML='<div class="empty">امروز خالیه</div>';return}
+  tasks.forEach(function(t,i){
+    var li=document.createElement("li");if(t.d)li.className="done";
+    li.innerHTML='<button class="c"></button><span class="t"></span><button class="b" data-a="up">↑</button><button class="b" data-a="dn">↓</button><button class="b" data-a="del">✕</button>';
+    li.querySelector(".t").textContent=t.x;
+    li.querySelector(".c").onclick=function(){t.d=!t.d;save();render()};
+    li.querySelectorAll(".b").forEach(function(b){b.onclick=function(){
+      var a=b.dataset.a;
+      if(a==="del")tasks.splice(i,1);
+      if(a==="up"&&i>0){var x=tasks[i];tasks[i]=tasks[i-1];tasks[i-1]=x}
+      if(a==="dn"&&i<tasks.length-1){var y=tasks[i];tasks[i]=tasks[i+1];tasks[i+1]=y}
+      save();render()}});
+    ul.appendChild(li);
+  });
+}
+document.getElementById("in").onkeydown=function(e){
+  if(e.key==="Enter"){var s=this.value.trim();if(!s)return;checkDay();data.tasks.push({x:s,d:false});this.value="";save();render()}
+};
+document.addEventListener("visibilitychange",function(){if(!document.hidden)checkDay()});
+window.addEventListener("focus",checkDay);
+showDate();checkDay();render();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){})}
+</script>
+</body>
+</html>
